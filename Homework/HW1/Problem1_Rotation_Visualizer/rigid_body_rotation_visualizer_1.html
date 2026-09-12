@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rigid Body Rotation Visualizer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root{
+    --bg: #eef1f6;
+    --panel: #ffffff;
+    --panel-2: #f4f6fa;
+    --line: #d7dee7;
+    --text: #1e293b;
+    --dim: #64748b;
+    --amber: #b45309;
+    --amber-bg: #fff3e0;
+    --axis-x: #dc2626;
+    --axis-y: #16a34a;
+    --axis-z: #2563eb;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    overflow:hidden;
+  }
+  #app{
+    display:flex;
+    height:100vh;
+    width:100vw;
+  }
+  #viewport{
+    flex: 1 1 auto;
+    position:relative;
+    min-width: 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, #ffffff 0%, #e4e9f1 75%);
+  }
+  #viewport canvas{ display:block; }
+
+  #hud-title{
+    position:absolute; top:18px; left:22px;
+    font-family:'Space Grotesk', sans-serif;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--amber);
+    background: rgba(255,255,255,0.75);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    pointer-events:none;
+  }
+  #hud-title span{
+    display:block;
+    font-family:'JetBrains Mono', monospace;
+    text-transform:none;
+    letter-spacing:normal;
+    font-weight: 400;
+    font-size:11px;
+    color: var(--dim);
+    margin-top:4px;
+  }
+  #hud-hint{
+    position:absolute; bottom:16px; left:22px;
+    font-size: 11px;
+    color: var(--dim);
+    background: rgba(255,255,255,0.75);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    pointer-events:none;
+    line-height:1.6;
+  }
+  #compass{
+    position:absolute; bottom:16px; right:22px;
+    font-size: 11px;
+    color: var(--dim);
+    text-align:right;
+    background: rgba(255,255,255,0.75);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    pointer-events:none;
+    line-height:1.7;
+  }
+  #compass b{ font-weight:700; }
+
+  #panel{
+    flex: 0 0 380px;
+    max-width: 380px;
+    background: var(--panel);
+    border-left: 1px solid var(--line);
+    box-shadow: -6px 0 18px rgba(30,41,59,0.04);
+    overflow-y: auto;
+    padding: 22px 20px 40px 20px;
+  }
+  #panel h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 2px 0;
+    letter-spacing: 0.01em;
+  }
+  #panel .sub{
+    font-size: 11.5px;
+    color: var(--dim);
+    margin-bottom: 20px;
+  }
+  .section{
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    margin-top: 16px;
+  }
+  .section:first-of-type{ border-top:none; margin-top:0; padding-top:0; }
+  .section-label{
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+
+  .slider-row{ margin-bottom: 14px; }
+  .slider-row .row-top{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .slider-row .row-top .name{ color: var(--text); }
+  .slider-row .row-top .name .axis-chip{
+    display:inline-block; width:8px; height:8px; border-radius:2px;
+    margin-right:6px; position:relative; top:-1px;
+  }
+  .slider-row .row-top .valwrap{
+    display:flex; align-items:center; gap:4px;
+  }
+  .slider-row .row-top .numin{
+    width: 62px;
+    text-align:right;
+    background: var(--panel-2);
+    color: var(--amber);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    -moz-appearance: textfield;
+  }
+  .slider-row .row-top .numin:focus{
+    outline:none; border-color: var(--amber);
+  }
+  .slider-row .row-top .numin::-webkit-outer-spin-button,
+  .slider-row .row-top .numin::-webkit-inner-spin-button{
+    -webkit-appearance:none; margin:0;
+  }
+  .slider-row .row-top .deg{ color: var(--dim); font-size:11px; }
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:4px;
+    border-radius:2px;
+    background: var(--line);
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:14px; height:14px;
+    border-radius:50%;
+    background: var(--amber);
+    cursor:pointer;
+    box-shadow: 0 0 8px rgba(255,180,84,0.5);
+    margin-top:-5px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%;
+    background: var(--amber); border:none; cursor:pointer;
+  }
+  input[type=range]::-moz-range-track{
+    height:4px; border-radius:2px; background: var(--line);
+  }
+
+  select, button{
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  select{ width:100%; cursor:pointer; }
+  .btn-row{ display:flex; gap:8px; margin-top:10px; }
+  .btn-row button{
+    flex:1; cursor:pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-row button:hover{ border-color: var(--amber); color: var(--amber); }
+
+  table.matrix{
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow:hidden;
+  }
+  table.matrix td{
+    padding: 9px 6px;
+    text-align:center;
+    border: 1px solid var(--line);
+    color: var(--amber);
+    font-weight:500;
+  }
+  .matrix-label{
+    font-size: 10px; color: var(--dim); margin-top: 8px; line-height:1.5;
+  }
+
+  .kv{
+    display:flex; justify-content:space-between;
+    font-size: 12px; padding: 5px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .kv:last-child{ border-bottom:none; }
+  .kv .k{ color: var(--dim); }
+  .kv .v{ color: var(--text); }
+  .kv .v.ok{ color: #15803d; font-weight:600; }
+
+  .quat-row{
+    display:grid; grid-template-columns: repeat(4, 1fr);
+    gap:6px; margin-top:8px;
+  }
+  .quat-cell{
+    background: var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding: 8px 4px;
+    text-align:center;
+  }
+  .quat-cell .qk{ font-size:10px; color:var(--dim); }
+  .quat-cell .qv{ font-size:12px; color:var(--amber); margin-top:3px; }
+
+  .vec-row{
+    display:grid; grid-template-columns: repeat(3, 1fr);
+    gap:6px; margin-top:8px;
+  }
+  .vec-cell{
+    background: var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding: 6px 4px;
+    text-align:center;
+  }
+  .vec-cell .qk{ font-size:10px; color:var(--dim); }
+  .vec-cell input{
+    width:100%;
+    text-align:center;
+    background:transparent;
+    border:none;
+    color:var(--amber);
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    font-weight:500;
+    padding:2px 0 0 0;
+    -moz-appearance: textfield;
+  }
+  .vec-cell input:focus{ outline:none; }
+  .vec-cell input::-webkit-outer-spin-button,
+  .vec-cell input::-webkit-inner-spin-button{
+    -webkit-appearance:none; margin:0;
+  }
+  .kv .v.mono{ font-size:11px; }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-track{ background: var(--panel); }
+  ::-webkit-scrollbar-thumb{ background: var(--line); border-radius:4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="viewport">
+    <div id="hud-title">Rigid Body Attitude
+      <span>Fixed frame N (dim) &nbsp;·&nbsp; Body frame B (bright)</span>
+    </div>
+    <div id="hud-hint">drag &nbsp;— orbit view<br>scroll — zoom</div>
+    <div id="compass"><b>X</b> roll axis / <b style="color:#dc2626">red</b><br><b>Y</b> pitch axis / <b style="color:#16a34a">green</b><br><b>Z</b> yaw axis / <b style="color:#2563eb">blue</b><br><b style="color:#7c3aed">v</b> purple &nbsp;<b style="color:#0d9488">w</b> teal &nbsp;<b style="color:#db2777">v×w</b> pink</div>
+  </div>
+
+  <div id="panel">
+    <h1>Rotation Console</h1>
+    <div class="sub">Body frame B relative to fixed frame N</div>
+
+    <div class="section">
+      <div class="section-label">Euler Input — Intrinsic Z-Y-X</div>
+
+      <div class="slider-row">
+        <div class="row-top">
+          <span class="name"><span class="axis-chip" style="background:var(--axis-z)"></span>Yaw &nbsp;ψ (about Z)</span>
+          <span class="valwrap"><input type="number" class="numin" id="yawNum" min="-180" max="180" step="0.5" value="0"><span class="deg">°</span></span>
+        </div>
+        <input type="range" id="yaw" min="-180" max="180" step="0.5" value="0">
+      </div>
+
+      <div class="slider-row">
+        <div class="row-top">
+          <span class="name"><span class="axis-chip" style="background:var(--axis-y)"></span>Pitch &nbsp;θ (about Y')</span>
+          <span class="valwrap"><input type="number" class="numin" id="pitchNum" min="-90" max="90" step="0.5" value="0"><span class="deg">°</span></span>
+        </div>
+        <input type="range" id="pitch" min="-90" max="90" step="0.5" value="0">
+      </div>
+
+      <div class="slider-row">
+        <div class="row-top">
+          <span class="name"><span class="axis-chip" style="background:var(--axis-x)"></span>Roll &nbsp;φ (about X'')</span>
+          <span class="valwrap"><input type="number" class="numin" id="rollNum" min="-180" max="180" step="0.5" value="0"><span class="deg">°</span></span>
+        </div>
+        <input type="range" id="roll" min="-180" max="180" step="0.5" value="0">
+      </div>
+
+      <div class="btn-row">
+        <button id="resetBtn">Reset</button>
+        <button id="randBtn">Randomize</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Rotation Matrix &nbsp;R (N←B)</div>
+      <table class="matrix" id="matrixTable">
+        <tr><td>1.000</td><td>0.000</td><td>0.000</td></tr>
+        <tr><td>0.000</td><td>1.000</td><td>0.000</td></tr>
+        <tr><td>0.000</td><td>0.000</td><td>1.000</td></tr>
+      </table>
+      <div class="matrix-label">v_N = R · v_B &nbsp;— columns are the body axes X,Y,Z expressed in the fixed frame</div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Quaternion (N←B)</div>
+      <div class="quat-row">
+        <div class="quat-cell"><div class="qk">w</div><div class="qv" id="qw">1.000</div></div>
+        <div class="quat-cell"><div class="qk">x</div><div class="qv" id="qx">0.000</div></div>
+        <div class="quat-cell"><div class="qk">y</div><div class="qv" id="qy">0.000</div></div>
+        <div class="quat-cell"><div class="qk">z</div><div class="qv" id="qz">0.000</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Axis–Angle</div>
+      <div class="kv"><span class="k">Rotation angle θ</span><span class="v" id="aaAngle">0.000°</span></div>
+      <div class="kv"><span class="k">Unit axis n̂</span><span class="v" id="aaAxis">( — , — , — )</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Validity Checks</div>
+      <div class="kv"><span class="k">det(R)</span><span class="v ok" id="detR">1.000</span></div>
+      <div class="kv"><span class="k">‖ R·Rᵀ − I ‖</span><span class="v ok" id="orthoErr">0.000e+0</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Test Vectors v, w &nbsp;(body frame)</div>
+      <div class="vec-row">
+        <div class="vec-cell"><div class="qk">vx</div><input type="number" step="0.1" id="vx" value="0.9"></div>
+        <div class="vec-cell"><div class="qk">vy</div><input type="number" step="0.1" id="vy" value="0.3"></div>
+        <div class="vec-cell"><div class="qk">vz</div><input type="number" step="0.1" id="vz" value="-0.4"></div>
+      </div>
+      <div class="vec-row">
+        <div class="vec-cell"><div class="qk">wx</div><input type="number" step="0.1" id="wx" value="-0.2"></div>
+        <div class="vec-cell"><div class="qk">wy</div><input type="number" step="0.1" id="wy" value="0.8"></div>
+        <div class="vec-cell"><div class="qk">wz</div><input type="number" step="0.1" id="wz" value="0.5"></div>
+      </div>
+      <div class="btn-row">
+        <button id="randVecBtn">Randomize v, w</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Identity 1 &nbsp;—&nbsp; R ŵ Rᵀ = (Rw)^</div>
+      <div class="kv"><span class="k">‖ R ŵ Rᵀ − (Rw)^ ‖</span><span class="v ok" id="skewErr">0.000e+0</span></div>
+      <div class="matrix-label">ŵ is the skew matrix with ŵx = w × x. Conjugating it by R equals the skew matrix of the rotated vector Rw.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Identity 2 &nbsp;—&nbsp; R(v×w) = Rv×Rw</div>
+      <div class="kv"><span class="k">R(v×w)</span><span class="v mono" id="lhsCross">(0.000, 0.000, 0.000)</span></div>
+      <div class="kv"><span class="k">Rv × Rw</span><span class="v mono" id="rhsCross">(0.000, 0.000, 0.000)</span></div>
+      <div class="kv"><span class="k">‖ error ‖</span><span class="v ok" id="crossErr">0.000e+0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- three.js scene setup ----------
+const viewport = document.getElementById('viewport');
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(window.devicePixelRatio || 1);
+viewport.appendChild(renderer.domElement);
+
+function resize(){
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+
+// lighting (for the translucent body plate)
+scene.add(new THREE.AmbientLight(0x8899aa, 0.9));
+const dl = new THREE.DirectionalLight(0xffffff, 0.6);
+dl.position.set(3, 5, 4);
+scene.add(dl);
+
+// ground grid for spatial reference
+const grid = new THREE.GridHelper(6, 24, 0xb9c2ce, 0xd7dee7);
+grid.position.y = -1.6;
+scene.add(grid);
+
+// ---------- text sprite labels ----------
+function makeLabel(text, color){
+  const canvas = document.createElement('canvas');
+  canvas.width = 128; canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  ctx.font = 'bold 44px "JetBrains Mono", monospace';
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 64, 32);
+  const tex = new THREE.CanvasTexture(canvas);
+  const mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true });
+  const sprite = new THREE.Sprite(mat);
+  sprite.scale.set(0.45, 0.225, 1);
+  return sprite;
+}
+
+// ---------- axis-triad builder ----------
+// returns a THREE.Group with 3 arrows + labels along local X, Y, Z
+function buildTriad({ length, colors, labels, dim, headScale }){
+  const group = new THREE.Group();
+  const dirs = [
+    new THREE.Vector3(1,0,0),
+    new THREE.Vector3(0,1,0),
+    new THREE.Vector3(0,0,1)
+  ];
+  dirs.forEach((dir, i) => {
+    const color = colors[i];
+    const arrow = new THREE.ArrowHelper(dir, new THREE.Vector3(0,0,0), length, color,
+      length * (headScale ?? 0.16), length * (headScale ?? 0.16) * 0.6);
+    if (dim) arrow.line.material.transparent = true, arrow.line.material.opacity = 0.55,
+              arrow.cone.material.transparent = true, arrow.cone.material.opacity = 0.55;
+    arrow.line.material.linewidth = 2;
+    group.add(arrow);
+
+    const label = makeLabel(labels[i], '#' + new THREE.Color(color).getHexString());
+    label.position.copy(dir.clone().multiplyScalar(length * 1.18));
+    if (dim) label.material.opacity = 0.7;
+    group.add(label);
+  });
+  return group;
+}
+
+const AXIS_COLORS = [0xdc2626, 0x16a34a, 0x2563eb]; // X, Y, Z
+
+// fixed reference frame N — dim, static
+const fixedFrame = buildTriad({
+  length: 1.35,
+  colors: AXIS_COLORS,
+  labels: ['Xn','Yn','Zn'],
+  dim: true
+});
+scene.add(fixedFrame);
+
+// body frame B — bright, rotates
+const bodyFrame = buildTriad({
+  length: 1.7,
+  colors: AXIS_COLORS,
+  labels: ["Xb","Yb","Zb"],
+  dim: false
+});
+scene.add(bodyFrame);
+
+// small translucent plate rigidly attached to the body frame,
+// so the rotation of an actual "rigid body" is intuitive to see
+const plateGeo = new THREE.BoxGeometry(1.15, 0.06, 0.75);
+const plateMat = new THREE.MeshStandardMaterial({
+  color: 0xb45309, transparent: true, opacity: 0.14,
+  metalness: 0.1, roughness: 0.6, side: THREE.DoubleSide
+});
+const plate = new THREE.Mesh(plateGeo, plateMat);
+const plateEdges = new THREE.LineSegments(
+  new THREE.EdgesGeometry(plateGeo),
+  new THREE.LineBasicMaterial({ color: 0xb45309, transparent: true, opacity: 0.7 })
+);
+bodyFrame.add(plate);
+bodyFrame.add(plateEdges);
+
+// v, w, and v×w drawn as children of bodyFrame: since bodyFrame's own
+// matrix IS R, these arrows are automatically shown rotated (Rv, Rw,
+// R(v×w)) — a live visual companion to the numeric identities below.
+const vArrow = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(0,0,0), 1, 0x7c3aed, 0.16, 0.09);
+const wArrow = new THREE.ArrowHelper(new THREE.Vector3(0,1,0), new THREE.Vector3(0,0,0), 1, 0x0d9488, 0.16, 0.09);
+const crossArrow = new THREE.ArrowHelper(new THREE.Vector3(0,0,1), new THREE.Vector3(0,0,0), 1, 0xdb2777, 0.16, 0.09);
+[vArrow, wArrow, crossArrow].forEach(a => { a.line.material.linewidth = 2; bodyFrame.add(a); });
+
+// ---------- custom orbit camera (no extra dependency) ----------
+let camState = { radius: 5.2, theta: Math.PI/4, phi: Math.PI/2.6 };
+function updateCameraFromState(){
+  const { radius, theta, phi } = camState;
+  camera.position.set(
+    radius * Math.sin(phi) * Math.sin(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.cos(theta)
+  );
+  camera.lookAt(0,0,0);
+}
+updateCameraFromState();
+
+let dragging = false, lastX = 0, lastY = 0;
+renderer.domElement.addEventListener('pointerdown', e => {
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+});
+window.addEventListener('pointerup', () => dragging = false);
+window.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+  camState.theta -= dx * 0.007;
+  camState.phi = Math.min(Math.max(camState.phi - dy * 0.007, 0.15), Math.PI - 0.15);
+  updateCameraFromState();
+});
+renderer.domElement.addEventListener('wheel', e => {
+  e.preventDefault();
+  camState.radius = Math.min(Math.max(camState.radius + e.deltaY * 0.003, 2.2), 12);
+  updateCameraFromState();
+}, { passive:false });
+
+// ---------- rotation math ----------
+const yawEl = document.getElementById('yaw');
+const pitchEl = document.getElementById('pitch');
+const rollEl = document.getElementById('roll');
+const yawNum = document.getElementById('yawNum');
+const pitchNum = document.getElementById('pitchNum');
+const rollNum = document.getElementById('rollNum');
+
+// keep each slider and its number box in lockstep, clamped to range
+function linkSliderAndNumber(slider, num){
+  const min = parseFloat(slider.min), max = parseFloat(slider.max);
+  slider.addEventListener('input', () => {
+    num.value = slider.value;
+    updateRotation();
+  });
+  const commitFromNum = () => {
+    let v = parseFloat(num.value);
+    if (isNaN(v)) v = 0;
+    v = Math.min(max, Math.max(min, v));
+    num.value = v;
+    slider.value = v;
+    updateRotation();
+  };
+  num.addEventListener('input', commitFromNum);
+  num.addEventListener('blur', commitFromNum);
+  num.addEventListener('keydown', e => { if (e.key === 'Enter') num.blur(); });
+}
+
+function deg2rad(d){ return d * Math.PI / 180; }
+
+function rotZ(a){
+  const c = Math.cos(a), s = Math.sin(a);
+  return [[c,-s,0],[s,c,0],[0,0,1]];
+}
+function rotY(a){
+  const c = Math.cos(a), s = Math.sin(a);
+  return [[c,0,s],[0,1,0],[-s,0,c]];
+}
+function rotX(a){
+  const c = Math.cos(a), s = Math.sin(a);
+  return [[1,0,0],[0,c,-s],[0,s,c]];
+}
+function matMul(A,B){
+  const R = [[0,0,0],[0,0,0],[0,0,0]];
+  for (let i=0;i<3;i++)
+    for (let j=0;j<3;j++)
+      for (let k=0;k<3;k++)
+        R[i][j] += A[i][k]*B[k][j];
+  return R;
+}
+
+const matrixCells = document.querySelectorAll('#matrixTable td');
+const qwEl = document.getElementById('qw'), qxEl = document.getElementById('qx'),
+      qyEl = document.getElementById('qy'), qzEl = document.getElementById('qz');
+const aaAngleEl = document.getElementById('aaAngle'), aaAxisEl = document.getElementById('aaAxis');
+const detREl = document.getElementById('detR'), orthoErrEl = document.getElementById('orthoErr');
+const skewErrEl = document.getElementById('skewErr');
+const lhsCrossEl = document.getElementById('lhsCross'), rhsCrossEl = document.getElementById('rhsCross');
+const crossErrEl = document.getElementById('crossErr');
+
+function cross(a,b){
+  return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+}
+function matVec(M,v){
+  return [
+    M[0][0]*v[0]+M[0][1]*v[1]+M[0][2]*v[2],
+    M[1][0]*v[0]+M[1][1]*v[1]+M[1][2]*v[2],
+    M[2][0]*v[0]+M[2][1]*v[1]+M[2][2]*v[2]
+  ];
+}
+function skewMat(w){
+  return [[0,-w[2],w[1]],[w[2],0,-w[0]],[-w[1],w[0],0]];
+}
+function transpose(M){
+  return [[M[0][0],M[1][0],M[2][0]],[M[0][1],M[1][1],M[2][1]],[M[0][2],M[1][2],M[2][2]]];
+}
+function frobErr(A,B){
+  let e = 0;
+  for (let i=0;i<3;i++) for (let j=0;j<3;j++) e += (A[i][j]-B[i][j])**2;
+  return Math.sqrt(e);
+}
+function readVec(prefix){
+  return ['x','y','z'].map(a => parseFloat(document.getElementById(prefix+a).value) || 0);
+}
+function setArrowVec(arrow, v){
+  const len = Math.min(2.2, Math.max(0.35, Math.hypot(...v)));
+  const dir = new THREE.Vector3(...v);
+  if (dir.lengthSq() < 1e-9) dir.set(1,0,0); else dir.normalize();
+  arrow.setDirection(dir);
+  arrow.setLength(len, len*0.16, len*0.16*0.6);
+}
+
+function det3(m){
+  return m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])
+       - m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])
+       + m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+}
+
+function updateRotation(){
+  const yaw = parseFloat(yawEl.value);
+  const pitch = parseFloat(pitchEl.value);
+  const roll = parseFloat(rollEl.value);
+
+  // intrinsic Z (yaw) -> Y (pitch) -> X (roll):  R = Rz * Ry * Rx
+  const R = matMul(matMul(rotZ(deg2rad(yaw)), rotY(deg2rad(pitch))), rotX(deg2rad(roll)));
+
+  // apply to three.js body frame via an explicit basis matrix
+  const m4 = new THREE.Matrix4();
+  m4.set(
+    R[0][0], R[0][1], R[0][2], 0,
+    R[1][0], R[1][1], R[1][2], 0,
+    R[2][0], R[2][1], R[2][2], 0,
+    0,0,0,1
+  );
+  bodyFrame.matrixAutoUpdate = false;
+  bodyFrame.matrix.copy(m4);
+
+  // matrix readout
+  let idx = 0;
+  for (let i=0;i<3;i++)
+    for (let j=0;j<3;j++)
+      matrixCells[idx++].textContent = R[i][j].toFixed(3);
+
+  // quaternion via three.js (feed it the same basis)
+  const q = new THREE.Quaternion().setFromRotationMatrix(m4);
+  qwEl.textContent = q.w.toFixed(3);
+  qxEl.textContent = q.x.toFixed(3);
+  qyEl.textContent = q.y.toFixed(3);
+  qzEl.textContent = q.z.toFixed(3);
+
+  // axis-angle
+  const angleRad = 2 * Math.acos(Math.min(1, Math.max(-1, q.w)));
+  const s = Math.sqrt(Math.max(1e-9, 1 - q.w*q.w));
+  let axis;
+  if (s < 1e-6) axis = [0,0,0];
+  else axis = [q.x/s, q.y/s, q.z/s];
+  aaAngleEl.textContent = (angleRad * 180/Math.PI).toFixed(3) + '°';
+  aaAxisEl.textContent = `(${axis[0].toFixed(3)}, ${axis[1].toFixed(3)}, ${axis[2].toFixed(3)})`;
+
+  // validity checks
+  const d = det3(R);
+  detREl.textContent = d.toFixed(6);
+
+  // R * R^T - I
+  const Rt = [[R[0][0],R[1][0],R[2][0]],[R[0][1],R[1][1],R[2][1]],[R[0][2],R[1][2],R[2][2]]];
+  const P = matMul(R, Rt);
+  let err = 0;
+  for (let i=0;i<3;i++)
+    for (let j=0;j<3;j++)
+      err += Math.pow(P[i][j] - (i===j?1:0), 2);
+  err = Math.sqrt(err);
+  orthoErrEl.textContent = err.toExponential(2);
+
+  // ---------------------------------------------------------------
+  // Identity checks: R ŵ Rᵀ = (Rw)^   and   R(v×w) = Rv×Rw
+  // ---------------------------------------------------------------
+  const v = readVec('v');
+  const w = readVec('w');
+  const cvw = cross(v, w);
+
+  // live 3D companions: v, w, v×w drawn attached to the body frame,
+  // so they render already-rotated by R (i.e. Rv, Rw, R(v×w))
+  setArrowVec(vArrow, v);
+  setArrowVec(wArrow, w);
+  setArrowVec(crossArrow, cvw);
+
+  // Identity 1: R ŵ Rᵀ vs (Rw)^
+  const Rw = matVec(R, w);
+  const lhsSkew = matMul(matMul(R, skewMat(w)), Rt);
+  const rhsSkew = skewMat(Rw);
+  skewErrEl.textContent = frobErr(lhsSkew, rhsSkew).toExponential(2);
+
+  // Identity 2: R(v×w) vs Rv×Rw
+  const Rv = matVec(R, v);
+  const lhsCrossVec = matVec(R, cvw);
+  const rhsCrossVec = cross(Rv, Rw);
+  lhsCrossEl.textContent = `(${lhsCrossVec.map(x=>x.toFixed(3)).join(', ')})`;
+  rhsCrossEl.textContent = `(${rhsCrossVec.map(x=>x.toFixed(3)).join(', ')})`;
+  const crossErrVal = Math.hypot(...lhsCrossVec.map((x,i)=>x-rhsCrossVec[i]));
+  crossErrEl.textContent = crossErrVal.toExponential(2);
+}
+
+linkSliderAndNumber(yawEl, yawNum);
+linkSliderAndNumber(pitchEl, pitchNum);
+linkSliderAndNumber(rollEl, rollNum);
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  yawEl.value = 0; pitchEl.value = 0; rollEl.value = 0;
+  yawNum.value = 0; pitchNum.value = 0; rollNum.value = 0;
+  updateRotation();
+});
+document.getElementById('randBtn').addEventListener('click', () => {
+  yawEl.value = yawNum.value = (Math.random()*360-180).toFixed(1);
+  pitchEl.value = pitchNum.value = (Math.random()*180-90).toFixed(1);
+  rollEl.value = rollNum.value = (Math.random()*360-180).toFixed(1);
+  updateRotation();
+});
+
+['vx','vy','vz','wx','wy','wz'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateRotation);
+});
+document.getElementById('randVecBtn').addEventListener('click', () => {
+  ['vx','vy','vz','wx','wy','wz'].forEach(id => {
+    document.getElementById(id).value = (Math.random()*2-1).toFixed(2);
+  });
+  updateRotation();
+});
+
+// ---------- render loop ----------
+function animate(){
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+resize();
+updateRotation();
+animate();
+</script>
+</body>
+</html>
