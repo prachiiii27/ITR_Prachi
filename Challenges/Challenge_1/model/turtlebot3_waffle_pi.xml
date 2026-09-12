@@ -1,0 +1,93 @@
+<mujoco model="turtlebot3_waffle_pi">
+  <compiler angle="radian" coordinate="local" inertiafromgeom="true"/>
+  <option gravity="0 0 -9.81" timestep="0.005" integrator="RK4"/>
+
+  <visual>
+    <headlight ambient="0.4 0.4 0.4" diffuse="0.8 0.8 0.8" specular="0.1 0.1 0.1"/>
+    <rgba fog="0.1 0.1 0.1 1"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0.1 0.15 0.2" width="512" height="512"/>
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1="0.2 0.3 0.4" rgb2="0.1 0.15 0.2"/>
+    <material name="grid_mat" texture="grid" texrepeat="20 20" reflectance="0.2"/>
+    <material name="dark_gray" rgba="0.2 0.2 0.2 1"/>
+    <material name="light_gray" rgba="0.7 0.7 0.7 1"/>
+    <material name="black" rgba="0.05 0.05 0.05 1"/>
+    <material name="red_axis" rgba="1 0 0 1"/>
+    <material name="green_axis" rgba="0 1 0 1"/>
+    <material name="blue_axis" rgba="0 0 1 1"/>
+    <material name="orange" rgba="0.9 0.4 0.1 1"/>
+  </asset>
+
+  <worldbody>
+    <!-- Ground Plane -->
+    <geom name="floor" type="plane" size="20 20 0.1" material="grid_mat"/>
+
+    <!-- Fixed World Coordinate Frame at Origin -->
+    <site name="world_origin" pos="0 0 0.005" size="0.02" rgba="1 1 0 0.5"/>
+    <geom name="world_x" type="cylinder" fromto="0 0 0.005 0.5 0 0.005" size="0.008" rgba="1 0 0 0.4"/>
+    <geom name="world_y" type="cylinder" fromto="0 0 0.005 0 0.5 0.005" size="0.008" rgba="0 1 0 0.4"/>
+    <geom name="world_z" type="cylinder" fromto="0 0 0.005 0 0 0.505" size="0.008" rgba="0 0 1 0.4"/>
+
+    <!-- TurtleBot3 Waffle Pi Body -->
+    <body name="turtlebot" pos="0 0 0.08">
+      <freejoint name="root"/>
+      
+      <!-- Main Chassis Base Plate -->
+      <geom name="base_plate_bottom" type="box" size="0.14 0.14 0.005" pos="-0.03 0 0.01" material="dark_gray" mass="0.8"/>
+      <geom name="base_plate_top" type="box" size="0.14 0.14 0.005" pos="-0.03 0 0.07" material="dark_gray" mass="0.5"/>
+      <geom name="spacer_fl" type="cylinder" fromto="0.08 0.11 0.015 0.08 0.11 0.065" size="0.005" material="light_gray" mass="0.02"/>
+      <geom name="spacer_fr" type="cylinder" fromto="0.08 -0.11 0.015 0.08 -0.11 0.065" size="0.005" material="light_gray" mass="0.02"/>
+      <geom name="spacer_bl" type="cylinder" fromto="-0.14 0.11 0.015 -0.14 0.11 0.065" size="0.005" material="light_gray" mass="0.02"/>
+      <geom name="spacer_br" type="cylinder" fromto="-0.14 -0.11 0.015 -0.14 -0.11 0.065" size="0.005" material="light_gray" mass="0.02"/>
+
+      <!-- Single Board Computer & Battery Pack -->
+      <geom name="battery_box" type="box" size="0.05 0.06 0.015" pos="-0.04 0 0.03" material="black" mass="0.4"/>
+      <geom name="sbc_board" type="box" size="0.045 0.03 0.005" pos="-0.03 0 0.08" rgba="0.1 0.6 0.2 1" mass="0.1"/>
+
+      <!-- 360 Laser Distance Sensor (LDS-01 Lidar) -->
+      <geom name="lidar_base" type="cylinder" pos="-0.064 0 0.095" size="0.035 0.015" material="black" mass="0.15"/>
+      <geom name="lidar_turret" type="cylinder" pos="-0.064 0 0.115" size="0.03 0.01" material="orange" mass="0.05"/>
+
+      <!-- Raspberry Pi Camera Mount -->
+      <geom name="camera_bracket" type="box" pos="0.105 0 0.09" size="0.01 0.025 0.02" material="dark_gray" mass="0.03"/>
+      <geom name="camera_lens" type="cylinder" fromto="0.11 0 0.09 0.12 0 0.09" size="0.008" material="black" mass="0.01"/>
+
+      <!-- Body Coordinate Frame Axes Markers (RGB = XYZ) -->
+      <site name="body_origin" pos="0 0 0.12" size="0.015" rgba="1 1 0 1"/>
+      <geom name="body_x_axis" type="cylinder" fromto="0 0 0.12 0.25 0 0.12" size="0.006" material="red_axis" mass="0.001"/>
+      <geom name="body_y_axis" type="cylinder" fromto="0 0 0.12 0 0.25 0.12" size="0.006" material="green_axis" mass="0.001"/>
+      <geom name="body_z_axis" type="cylinder" fromto="0 0 0.12 0 0 0.37" size="0.006" material="blue_axis" mass="0.001"/>
+
+      <!-- Left Drive Wheel -->
+      <body name="left_wheel" pos="0 0.144 -0.047">
+        <joint name="left_wheel_joint" type="hinge" axis="0 1 0" damping="0.05"/>
+        <geom name="left_wheel_geom" type="cylinder" size="0.033 0.009" zaxis="0 1 0" material="black" mass="0.1"/>
+        <geom name="left_hubcap" type="cylinder" size="0.018 0.01" zaxis="0 1 0" material="orange" mass="0.01"/>
+      </body>
+
+      <!-- Right Drive Wheel -->
+      <body name="right_wheel" pos="0 -0.144 -0.047">
+        <joint name="right_wheel_joint" type="hinge" axis="0 1 0" damping="0.05"/>
+        <geom name="right_wheel_geom" type="cylinder" size="0.033 0.009" zaxis="0 1 0" material="black" mass="0.1"/>
+        <geom name="right_hubcap" type="cylinder" size="0.018 0.01" zaxis="0 1 0" material="orange" mass="0.01"/>
+      </body>
+
+      <!-- Front Caster Ball -->
+      <body name="front_caster" pos="0.09 0 -0.065">
+        <geom name="front_caster_geom" type="sphere" size="0.015" material="light_gray" mass="0.03" friction="0.001 0.001 0.001"/>
+      </body>
+
+      <!-- Rear Caster Ball -->
+      <body name="rear_caster" pos="-0.14 0 -0.065">
+        <geom name="rear_caster_geom" type="sphere" size="0.015" material="light_gray" mass="0.03" friction="0.001 0.001 0.001"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <velocity name="left_motor" joint="left_wheel_joint" kv="50" ctrlrange="-15 15"/>
+    <velocity name="right_motor" joint="right_wheel_joint" kv="50" ctrlrange="-15 15"/>
+  </actuator>
+</mujoco>

@@ -52,7 +52,13 @@ ITR_Prachi/
 │       └── README.md
 │
 └── Challenges/                          # Robotics Challenges & Mini-Projects
-    └── README.md                        # Challenges index & tracks
+    ├── README.md                        # Challenges index
+    │
+    └── Challenge_1/                     # Challenge 1: TurtleBot3 & Quadcopter Simulation
+        ├── model/                       # MJCF XML models for TurtleBot3 & Quadcopter
+        ├── scripts/                     # Teleop & Rotation Matrix HUD scripts
+        ├── requirements.txt             # Dependencies
+        └── README.md                    # Complete challenge documentation
 ```
 
 ---
