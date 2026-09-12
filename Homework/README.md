@@ -1,14 +1,15 @@
 # Homework Assignments 📚
 
-This directory contains all coursework homework assignments for **Introduction to Robotics (ITR / ME 639)** at IIT Gandhinagar.
+This directory contains all coursework homework assignments and problem submissions for **Introduction to Robotics (ITR)** at IIT Gandhinagar.
 
 ---
 
-## 📋 Table of Contents
+## 📋 Homework Directory
 
-| Assignment | Topic | Status | Description |
+| Item | Title & Topic | Status | Description |
 | :--- | :--- | :---: | :--- |
-| **[HW1 — 3D Rigid Body Rotations](HW1/)** | Rotations in $SO(3)$, Skew-symmetric matrices, MuJoCo simulation & ROS2 TF | ✅ Completed | Interactive 3D visualizer, MuJoCo rotation composition sandbox, Lie algebra verification, and analytical solutions. |
-| **HW2** | Forward & Inverse Kinematics (DH Parameters, Product of Exponentials) | ⏳ Upcoming | Manipulator kinematic chains and workspace analysis. |
-| **HW3** | Differential Kinematics & Jacobians | ⏳ Upcoming | Manipulator Jacobian, singularities, and velocity kinematics. |
-| **HW4** | Robot Dynamics (Euler-Lagrange & Newton-Euler) | ⏳ Upcoming | Dynamic equations of motion and trajectory generation. |
+| **[Homework Problem 1](Homework_Problem_1/)** | Interactive 3D Frame Rotation & Rotation Matrix Visualizer | ✅ Completed | Web-based interactive 3D tool with sliders for real-time frame rotations and live $SO(3)$ rotation matrix readout. |
+| **[Homework 1 (HW1)](HW1/)** | MuJoCo Rotation Sandbox & Skew Properties | ✅ Completed | Current vs. fixed frame rotation composition in MuJoCo, skew-symmetric Lie algebra verification, ROS2 TF demo, and written solutions. |
+| **Homework 2 (HW2)** | Forward & Inverse Kinematics (DH Parameters, PoE) | ⏳ Upcoming | Manipulator kinematic chains and workspace analysis. |
+| **Homework 3 (HW3)** | Velocity Kinematics & Manipulator Jacobians | ⏳ Upcoming | Differential kinematics, singularities, and inverse velocity. |
+| **Homework 4 (HW4)** | Robot Dynamics & Motion Control | ⏳ Upcoming | Equations of motion, trajectory generation, and control. |

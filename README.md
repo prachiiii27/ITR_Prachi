@@ -1,21 +1,30 @@
-# Introduction to Robotics (ITR / ME 639) 🤖
+# Introduction to Robotics (ITR) 🤖
 
-**Repository of Coursework, Homework Assignments, and Practical Challenges**  
+**Course Repository: Coursework, Homework Assignments & Practical Challenges**  
 *Department of Mechanical Engineering, Indian Institute of Technology Gandhinagar (IITGN)*  
 **Author:** Prachi Jindal
 
 ---
 
-## 📌 About the Course
+## 📚 Course Overview
 
-**Introduction to Robotics** covers the foundational mathematics, mechanics, computation, and software architectures used in modern robotics engineering. Key topics include:
+This repository contains all academic assignments, interactive simulation tools, robotics codebases, and challenge projects developed as part of the **Introduction to Robotics (ITR)** course at IIT Gandhinagar.
 
-- **Rigid Body Kinematics:** Spatial rotations ($SO(3)$), homogeneous transformations ($SE(3)$), Euler angles, unit quaternions, and screw theory (Product of Exponentials).
-- **Forward & Inverse Kinematics:** Analytical and numerical solvers for open-chain serial manipulators.
-- **Differential Kinematics & Statics:** Geometric and analytical Jacobians, manipulability ellipsoids, and singularity analysis.
-- **Robot Dynamics:** Lagrangian formulation, Newton-Euler recursive algorithm, and inertia modeling.
-- **Motion Planning & Control:** Trajectory generation, operational space control, and impedance/force control.
-- **Simulation & Software Frameworks:** MuJoCo physics engine, ROS2 (Robot Operating System), and RViz.
+---
+
+## 🎯 Course Content & Topics
+
+- **Introduction to Robotics:** Types, Terminology, Applications.
+- **Review of Coordinate Frames, Vectors, and Transformations in 3D.**
+- **Rotation Representations:** Matrices, Euler Angles, Axis-Angle, Quaternions.
+- **Rigid Body Transformations:** Homogeneous Coordinates, $SE(3)$, Composition.
+- **Denavit-Hartenberg (DH) Representation and Conventions.**
+- **Forward and Inverse Kinematics for Serial Manipulators and Mobile Robots.**
+- **Workspaces and Reachability Analysis.**
+- **Velocity Kinematics; Manipulator Jacobians; Inverse Velocity Analysis.**
+- **Singularities:** Identification and Implications for Motion.
+- **Motion Planning and Trajectory Generation using Vision; Motion Control.**
+- **Introduction to Robot Statics and Dynamics.**
 
 ---
 
@@ -23,29 +32,36 @@
 
 ```
 ITR_Prachi/
-├── Homework/                       # Semester Homework Assignments
-│   ├── HW1/                        # Homework 1: 3D Rotations & Kinematics
-│   │   ├── Problem1_Rotation_Visualizer/  # WebGL/Three.js interactive rotation tool
-│   │   ├── model/                  # MuJoCo asymmetric body model definition
-│   │   ├── scripts/                # Python simulation and verification scripts
-│   │   ├── ros_ws/                 # ROS2 TF broadcaster workspace
-│   │   ├── results/                # Numerical plots and outputs
-│   │   ├── videos/                 # Simulation recordings
-│   │   ├── Hw1_part1.pdf           # Written solutions & analytical derivations
-│   │   └── README.md               # Detailed HW1 documentation
-│   └── README.md                   # Homework directory index
+├── README.md                            # Main Course Overview & Syllabus
 │
-└── Challenges/                     # Hands-on Robotics Challenges & Mini-Projects
-    └── README.md                   # Challenges directory index
+├── Homework/                            # Homework Assignments & Problems
+│   ├── README.md                        # Homework assignments index
+│   │
+│   ├── Homework_Problem_1/              # Homework Problem 1: Interactive 3D Frame Rotation Visualizer
+│   │   ├── rigid_body_rotation_visualizer.html
+│   │   ├── rigid_body_rotation_visualizer_1.html
+│   │   └── README.md
+│   │
+│   └── HW1/                             # Homework 1: MuJoCo Rotation Sandbox & Skew Verification
+│       ├── model/                       # MuJoCo MJCF model
+│       ├── scripts/                     # Python simulation scripts
+│       ├── ros_ws/                      # ROS2 TF broadcaster workspace
+│       ├── results/                     # Numerical plots
+│       ├── videos/                      # Simulation video demos
+│       ├── Hw1_part1.pdf                # Analytical solutions & derivations
+│       └── README.md
+│
+└── Challenges/                          # Robotics Challenges & Mini-Projects
+    └── README.md                        # Challenges index & tracks
 ```
 
 ---
 
-## 🛠️ Environment & Prerequisites
+## 🛠️ Software & Environment
 
 - **Python:** 3.8+ (`numpy`, `scipy`, `matplotlib`, `mujoco`)
-- **Web Browser:** Any modern browser with WebGL support (Chrome, Firefox, Safari, Edge)
-- **ROS Version:** ROS 2 Humble / Iron / Jazzy (optional, for ROS workspace packages)
+- **Web Browser:** Any modern browser with WebGL support for 3D visualizers
+- **Robot Middleware:** ROS 2 (Humble / Iron / Jazzy)
 
 ---
 
