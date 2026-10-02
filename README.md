@@ -54,11 +54,18 @@ ITR_Prachi/
 └── Challenges/                          # Robotics Challenges & Mini-Projects
     ├── README.md                        # Challenges index
     │
-    └── Challenge_1/                     # Challenge 1: TurtleBot3 & Quadcopter Simulation
-        ├── model/                       # MJCF XML models for TurtleBot3 & Quadcopter
-        ├── scripts/                     # Teleop & Rotation Matrix HUD scripts
-        ├── requirements.txt             # Dependencies
-        └── README.md                    # Complete challenge documentation
+    ├── Challenge_1/                     # Challenge 1: TurtleBot3 & Quadcopter Simulation
+    │   ├── model/                       # MJCF XML models for TurtleBot3 & Quadcopter
+    │   ├── scripts/                     # Teleop & Rotation Matrix HUD scripts
+    │   ├── requirements.txt             # Dependencies
+    │   └── README.md                    # Complete challenge documentation
+    │
+    └── Challenge_2/                     # Challenge 2: MuJoCo Forward Kinematics (FK) & Robot Control Lab
+        ├── robot_descriptions/          # Robot XML models (HEAL, Franka Panda, UR5, G1)
+        ├── scripts/                     # 6-DOF, 7-DOF, HEAL, Franka simulation scripts
+        ├── environment.yml              # Conda environment
+        ├── requirements.txt             # Pip requirements
+        └── README.md                    # Detailed documentation & FK mathematical formulation
 ```
 
 ---
