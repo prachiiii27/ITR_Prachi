@@ -1,7 +1,7 @@
 # Tutorial 4 – Pick and Place in MuJoCo with Inverse Kinematics
 
-**Course:** Introduction to Robotics (ITR) **Tutorial author:** Debojit Das
-**Student:** `<your name>` **Roll no.:** `<your roll number>`
+**Course:** Introduction to Robotics (ITR) 
+**Student:** Prachi Jindal
 
 A **Franka Emika Panda** arm picks up a 4 cm cube placed at a random position and
 rotation on a table and drops it into a tray. The motion is planned with
@@ -231,7 +231,7 @@ The 3-minute video has one minute each of **Mink**, **DLS** and **QP-IK**, showi
 different trials. Each clip draws the gripper trail; earlier trials stay visible,
 faded.
 
-`<paste video link here>`
+https://youtu.be/9ps0CDkTn_A
 
 ---
 
