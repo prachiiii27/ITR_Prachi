@@ -1,5 +1,0 @@
-.venv/
-__pycache__/
-*.pyc
-results/logs_*_video.csv
-results/logs_*_test.csv
