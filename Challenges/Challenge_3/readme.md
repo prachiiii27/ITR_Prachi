@@ -15,7 +15,7 @@ on **exactly the same 25 cube poses**.
 | **DLS-IK** | damped least squares, closed loop: `dq = (JᵀJ + λI)⁻¹ Jᵀ K e` + null-space joint centring | `ik_solvers.DLSIK` |
 | **QP-IK** | DLS cost as a quadratic program with joint-limit and joint-velocity constraints (`quadprog`) | `ik_solvers.QPIK` |
 
-🎥 **Video (3 min, 1 min per IK method):** `<paste your Google Drive / YouTube link here>`
+🎥 **Video (3 min, 1 min per IK method):** `https://youtu.be/9ps0CDkTn_A`
 
 ---
 
