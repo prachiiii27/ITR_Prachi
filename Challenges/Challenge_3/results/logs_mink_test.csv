@@ -1,2 +1,0 @@
-episode,seed,cube_x,cube_y,cube_yaw,plan_time_s,ik_time_s,ik_iters_total,ik_iters_mean,ik_iters_max,waypoints,joint_limit_viol,plan_min_clear,yaw_tries,grasp_yaw,place_yaw,success,failure_reason,vel_viol,max_vel_ratio,min_clear_robot,min_clear_cube_tray,cube_tray_contact,final_cube_x,final_cube_y,final_cube_z,sim_time_s,method
-0,0,0.512,0.0057,-2.8841,0.0549,0.0419,108,1.0,1,108,0,0.0113,1,0.257,0.0,True,,0,0.367,0.0113,0.055,False,0.4773,-0.3199,0.1238,8.88,mink
