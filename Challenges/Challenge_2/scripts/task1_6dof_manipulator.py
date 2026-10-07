@@ -7,8 +7,11 @@ and Interactive Keyboard Controls.
 import os
 import sys
 import time
+import traceback
 import numpy as np
 import mujoco
+
+from fk_utils import PoEForwardKinematics, gravity_torque
 
 # Optional viewer import with headless fallback
 try:
@@ -106,13 +109,23 @@ XML = r"""
         </body>
     </worldbody>
 
+    <!-- 'base' has no joint, so MuJoCo treats it as part of the world and does NOT
+         auto-ignore its overlap with link1. Without this, base and link1 rub against
+         each other at every pose and push joint 1 off target. -->
+    <contact>
+        <exclude body1="base" body2="link1"/>
+    </contact>
+
+    <!-- Torque motors: ctrl = joint torque in N*m. The PD + gravity-compensation
+         controller in Python computes that torque. (Position servos here would treat
+         the torque number as an ANGLE target, which is what went wrong before.) -->
     <actuator>
-        <position name="motor1" joint="joint1" kp="500" kv="60" forcerange="-500 500"/>
-        <position name="motor2" joint="joint2" kp="700" kv="80" forcerange="-800 800"/>
-        <position name="motor3" joint="joint3" kp="600" kv="70" forcerange="-700 700"/>
-        <position name="motor4" joint="joint4" kp="400" kv="50" forcerange="-500 500"/>
-        <position name="motor5" joint="joint5" kp="350" kv="45" forcerange="-400 400"/>
-        <position name="motor6" joint="joint6" kp="250" kv="35" forcerange="-300 300"/>
+        <motor name="motor1" joint="joint1" gear="1" ctrllimited="true" ctrlrange="-500 500"/>
+        <motor name="motor2" joint="joint2" gear="1" ctrllimited="true" ctrlrange="-800 800"/>
+        <motor name="motor3" joint="joint3" gear="1" ctrllimited="true" ctrlrange="-700 700"/>
+        <motor name="motor4" joint="joint4" gear="1" ctrllimited="true" ctrlrange="-500 500"/>
+        <motor name="motor5" joint="joint5" gear="1" ctrllimited="true" ctrlrange="-400 400"/>
+        <motor name="motor6" joint="joint6" gear="1" ctrllimited="true" ctrlrange="-300 300"/>
     </actuator>
 </mujoco>
 """
@@ -185,6 +198,7 @@ def main():
     print("------------------------------------------\n")
 
     ee_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "EE")
+    fk = PoEForwardKinematics(model, "EE", ee_is_site=True)   # our own FK, checked against MuJoCo
 
     data.qpos[:6] = 0
     data.qvel[:6] = 0
@@ -203,17 +217,12 @@ def main():
 
             last_print = time.time()
             while viewer.is_running():
-                # RNE Gravity compensation
-                mujoco.mj_rne(model, data, 0, data.qfrc_bias)
-                gravity_torque = data.qfrc_bias[:6].copy()
+                step_start = time.time()
 
-                # PD Torque controller
-                for i in range(6):
-                    pos_err = q_target[i] - data.qpos[i]
-                    vel_err = -data.qvel[i]
-                    t_val = kp[i] * pos_err + kd[i] * vel_err + gravity_torque[i]
-                    t_val = np.clip(t_val, -torque_limits[i], torque_limits[i])
-                    data.ctrl[i] = t_val
+                # tau = Kp (q_ref - q) - Kd qdot + g(q)   [PD + RNE gravity compensation]
+                tau_g = gravity_torque(model, data)[:6]
+                tau = kp * (q_target - data.qpos[:6]) - kd * data.qvel[:6] + tau_g
+                data.ctrl[:6] = np.clip(tau, -torque_limits, torque_limits)
 
                 mujoco.mj_step(model, data)
                 viewer.sync()
@@ -221,22 +230,22 @@ def main():
                 now = time.time()
                 if now - last_print > 0.5:
                     joint_deg = np.rad2deg(data.qpos[:6])
-                    ee_pos = data.site_xpos[ee_id]
                     print(f"Joints (deg): {np.round(joint_deg, 1)}")
-                    print(f"EE Position : X = {ee_pos[0]:.3f}, Y = {ee_pos[1]:.3f}, Z = {ee_pos[2]:.3f}\n")
+                    print(fk.report(data) + "\n")
                     last_print = now
 
-                time.sleep(0.001)
+                # keep roughly real time (one physics step = model.opt.timestep seconds)
+                time.sleep(max(0.0, model.opt.timestep - (time.time() - step_start)))
 
-    except Exception as e:
-        print(f"Interactive viewer closed or not supported in this display environment: {e}")
-        print("Executing headless simulation step verification...")
+    except Exception:
+        # Show the REAL error (not just "viewer not supported"), then run a short headless check
+        traceback.print_exc()
+        print("Viewer unavailable - running a 1 s headless check instead...")
         for _ in range(500):
-            mujoco.mj_rne(model, data, 0, data.qfrc_bias)
-            data.ctrl[:6] = data.qfrc_bias[:6]
+            tau = kp * (q_target - data.qpos[:6]) - kd * data.qvel[:6] + gravity_torque(model, data)[:6]
+            data.ctrl[:6] = np.clip(tau, -torque_limits, torque_limits)
             mujoco.mj_step(model, data)
-        ee_pos = data.site_xpos[ee_id]
-        print(f"Final Headless EE Position: X = {ee_pos[0]:.3f}, Y = {ee_pos[1]:.3f}, Z = {ee_pos[2]:.3f}")
+        print(fk.report(data))
 
 
 if __name__ == "__main__":

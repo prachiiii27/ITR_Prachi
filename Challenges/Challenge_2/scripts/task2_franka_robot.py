@@ -7,8 +7,11 @@ RNE gravity compensation, forward kinematics tracking, and interactive viewer.
 import os
 import sys
 import time
+import traceback
 import numpy as np
 import mujoco
+
+from fk_utils import PoEForwardKinematics, gravity_torque
 
 # Optional viewer import with headless fallback
 try:
@@ -18,9 +21,13 @@ except ImportError:
     HAS_VIEWER = False
 
 
+# Home pose (from the Menagerie panda keyframe). All zeros is NOT valid for the
+# Panda: joint 4 must stay between -3.07 and -0.07 rad.
+HOME = np.array([0.0, 0.0, 0.0, -1.5708, 0.0, 1.5708, -0.7853])
+
 # Dynamic Target State (7 arm joints + 1 gripper state)
-q_target = np.zeros(7)
-gripper_target = 0.04  # Fully open
+q_target = HOME.copy()
+gripper_target = 0.04  # finger opening in metres: 0.04 = fully open, 0 = closed
 STEP = np.deg2rad(2.0)
 GRIPPER_STEP = 0.005
 
@@ -74,7 +81,7 @@ def key_callback(key):
         gripper_target = max(0.00, gripper_target - GRIPPER_STEP)
     # SPACE : Reset all
     elif key == 32:
-        q_target[:] = 0
+        q_target[:] = HOME
         gripper_target = 0.04
 
     q_target[:] = np.clip(q_target, LOWER_ARM, UPPER_ARM)
@@ -98,6 +105,20 @@ def main():
     print(f"\nLoading Franka Emika Panda XML: {xml_path}")
     model = mujoco.MjModel.from_xml_path(xml_path)
     data = mujoco.MjData(model)
+
+    # The Menagerie panda.xml ships actuators 1-7 as POSITION servos (ctrl = target angle).
+    # This lab does PD torque control, so switch them to plain torque motors here:
+    #   force = gain * ctrl + bias   ->   gain = 1, bias = 0   =>   force = ctrl (N*m)
+    # and limit ctrl to the real Panda torque limits (87 N*m joints 1-4, 12 N*m joints 5-7).
+    for i in range(7):
+        model.actuator_gaintype[i] = mujoco.mjtGain.mjGAIN_FIXED
+        model.actuator_gainprm[i, :] = 0.0
+        model.actuator_gainprm[i, 0] = 1.0
+        model.actuator_biastype[i] = mujoco.mjtBias.mjBIAS_NONE
+        model.actuator_biasprm[i, :] = 0.0
+        model.actuator_ctrllimited[i] = 1
+        model.actuator_ctrlrange[i] = model.actuator_forcerange[i]
+    # Actuator 8 (gripper) stays a position servo; its ctrl runs 0 (closed) .. 255 (open).
 
     print("\n==========================================")
     print("       TASK 2: FRANKA PANDA ROBOT MODEL")
@@ -127,23 +148,31 @@ def main():
     print(" Y / H  -> Joint 6 + / -")
     print(" U / J  -> Joint 7 + / -")
     print(" O / P  -> Gripper Open / Close")
-    print(" SPACE  -> Reset joints and gripper")
+    print(" SPACE  -> Reset to home pose, gripper open")
     print("------------------------------------------\n")
 
     # Gains for PD controller
     kp = np.array([600, 600, 600, 600, 250, 150, 50])
     kd = np.array([ 50,  50,  50,  50,  30,  20, 10])
 
-    site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "attachment_site")
-    if site_id < 0:
-        # Fallback body lookup for hand
-        hand_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "hand")
+    # End-effector: the "attachment_site" if the model has one, otherwise the "hand" body
+    if mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "attachment_site") >= 0:
+        fk = PoEForwardKinematics(model, "attachment_site", ee_is_site=True)
     else:
-        hand_body_id = -1
+        fk = PoEForwardKinematics(model, "hand", ee_is_site=False)
 
-    data.qpos[:7] = 0
-    data.qvel[:7] = 0
+    data.qpos[:7] = HOME
+    data.qpos[7:9] = 0.04          # fingers open
+    data.qvel[:] = 0
     mujoco.mj_forward(model, data)
+
+    def control():
+        # tau = Kp (q_ref - q) - Kd qdot + g(q)   for the 7 arm joints
+        tau = kp * (q_target - data.qpos[:7]) - kd * data.qvel[:7] + gravity_torque(model, data)[:7]
+        data.ctrl[:7] = np.clip(tau, model.actuator_ctrlrange[:7, 0], model.actuator_ctrlrange[:7, 1])
+        # Gripper: metres (0..0.04) -> actuator units (0..255)
+        if model.nu > 7:
+            data.ctrl[7] = gripper_target / 0.04 * 255.0
 
     try:
         with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as viewer:
@@ -155,23 +184,8 @@ def main():
             last_print = time.time()
 
             while viewer.is_running():
-                # Compute gravity bias forces
-                mujoco.mj_rne(model, data, 0, data.qfrc_bias)
-
-                # PD Control for 7 arm joints
-                for i in range(min(7, model.nu)):
-                    err = q_target[i] - data.qpos[i]
-                    torque = kp[i] * err - kd[i] * data.qvel[i] + data.qfrc_bias[i]
-                    if model.actuator_ctrllimited[i]:
-                        low = model.actuator_ctrlrange[i, 0]
-                        high = model.actuator_ctrlrange[i, 1]
-                        torque = np.clip(torque, low, high)
-                    data.ctrl[i] = torque
-
-                # Gripper actuator control if available
-                if model.nu > 7:
-                    for i in range(7, model.nu):
-                        data.ctrl[i] = gripper_target
+                step_start = time.time()
+                control()
 
                 mujoco.mj_step(model, data)
                 viewer.sync()
@@ -181,26 +195,19 @@ def main():
                     joint_deg = np.rad2deg(data.qpos[:7])
                     print(f"Joints (deg): {np.round(joint_deg, 1)}")
 
-                    if site_id >= 0:
-                        ee_pos = data.site_xpos[site_id]
-                        print(f"EE Position : X = {ee_pos[0]:.3f}, Y = {ee_pos[1]:.3f}, Z = {ee_pos[2]:.3f}\n")
-                    elif hand_body_id >= 0:
-                        ee_pos = data.xpos[hand_body_id]
-                        print(f"Hand Position: X = {ee_pos[0]:.3f}, Y = {ee_pos[1]:.3f}, Z = {ee_pos[2]:.3f}\n")
+                    print(f"Finger position: {data.qpos[7]:.3f} m each (target {gripper_target:.3f} m; 0.04 = open, 0 = closed)")
+                    print(fk.report(data) + "\n")
                     last_print = now
 
-                time.sleep(0.002)
+                time.sleep(max(0.0, model.opt.timestep - (time.time() - step_start)))
 
-    except Exception as e:
-        print(f"Interactive viewer closed or not supported in this display environment: {e}")
-        print("Executing headless simulation step verification...")
+    except Exception:
+        traceback.print_exc()
+        print("Viewer unavailable - running a short headless check instead...")
         for _ in range(500):
-            mujoco.mj_rne(model, data, 0, data.qfrc_bias)
-            for i in range(min(7, model.nu)):
-                err = q_target[i] - data.qpos[i]
-                data.ctrl[i] = kp[i] * err - kd[i] * data.qvel[i] + data.qfrc_bias[i]
+            control()
             mujoco.mj_step(model, data)
-        print("Headless execution verification successful!")
+        print(fk.report(data))
 
 
 if __name__ == "__main__":

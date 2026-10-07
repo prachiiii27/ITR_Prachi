@@ -1,14 +1,18 @@
 """
 Task 2: HEAL Robot MuJoCo Model Simulation
-Loads HEAL Robot XML description model dynamically, applies PD control,
+Loads HEAL Robot XML description model dynamically, applies PD control with
+RNE gravity compensation,
 and provides interactive viewer with end-effector tracking.
 """
 
 import os
 import sys
 import time
+import traceback
 import numpy as np
 import mujoco
+
+from fk_utils import PoEForwardKinematics, gravity_torque
 
 # Optional viewer import with headless fallback
 try:
@@ -118,12 +122,23 @@ def main():
     print(" SPACE  -> Reset joints")
     print("------------------------------------------\n")
 
-    # Gains for PD controller
-    kp = np.array([100, 100, 100, 70, 50, 30])
-    kd = np.array([ 10,  10,  10,  7,  5,  3])
+    # Gains for PD controller (one per actuated joint; HEAL has 6 motors on joints 1-6)
+    n = num_actuators
+    kp = np.array([100, 100, 100, 70, 50, 30], dtype=float)[:n]
+    kd = np.array([ 10,  10,  10,  7,  5,  3], dtype=float)[:n]
 
-    # End effector site lookup
+    # End effector site lookup + our own FK for the same site
     site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "right_center")
+    fk = PoEForwardKinematics(model, "right_center", ee_is_site=True)
+
+    def control():
+        # tau = Kp (q_ref - q) - Kd qdot + g(q)
+        # Without the g(q) term the shoulder sagged ~20 deg below its target under gravity.
+        tau = kp * (q_target[:n] - data.qpos[:n]) - kd * data.qvel[:n] + gravity_torque(model, data)[:n]
+        lo, hi = model.actuator_ctrlrange[:n, 0], model.actuator_ctrlrange[:n, 1]
+        limited = model.actuator_ctrllimited[:n].astype(bool)
+        tau[limited] = np.clip(tau[limited], lo[limited], hi[limited])
+        data.ctrl[:n] = tau
 
     data.qpos[:] = 0
     data.qvel[:] = 0
@@ -134,17 +149,8 @@ def main():
             last_print = time.time()
 
             while viewer.is_running():
-                # PD Control
-                for i in range(min(num_actuators, len(q_target))):
-                    err = q_target[i] - data.qpos[i]
-                    torque = kp[i] * err - kd[i] * data.qvel[i]
-
-                    if model.actuator_ctrllimited[i]:
-                        low = model.actuator_ctrlrange[i, 0]
-                        high = model.actuator_ctrlrange[i, 1]
-                        torque = np.clip(torque, low, high)
-
-                    data.ctrl[i] = torque
+                step_start = time.time()
+                control()
 
                 mujoco.mj_step(model, data)
                 viewer.sync()
@@ -153,22 +159,18 @@ def main():
                 if now - last_print > 0.5:
                     joint_deg = np.rad2deg(data.qpos[:num_joints])
                     print(f"Joints (deg): {np.round(joint_deg, 2)}")
-                    if site_id >= 0:
-                        ee_pos = data.site_xpos[site_id]
-                        print(f"EE Position : X = {ee_pos[0]:.3f}, Y = {ee_pos[1]:.3f}, Z = {ee_pos[2]:.3f}\n")
+                    print(fk.report(data) + "\n")
                     last_print = now
 
-                time.sleep(0.002)
+                time.sleep(max(0.0, model.opt.timestep - (time.time() - step_start)))
 
-    except Exception as e:
-        print(f"Interactive viewer closed or not supported in this display environment: {e}")
-        print("Executing headless simulation step verification...")
+    except Exception:
+        traceback.print_exc()
+        print("Viewer unavailable - running a short headless check instead...")
         for _ in range(500):
-            for i in range(min(num_actuators, len(q_target))):
-                err = q_target[i] - data.qpos[i]
-                data.ctrl[i] = kp[i] * err - kd[i] * data.qvel[i]
+            control()
             mujoco.mj_step(model, data)
-        print("Headless execution verification successful!")
+        print(fk.report(data))
 
 
 if __name__ == "__main__":
