@@ -1,4 +1,4 @@
-# Challenge 1: Robot Simulation & 3D Rotation Kinematics 🤖🚁
+﻿# Challenge 1: Robot Simulation & 3D Rotation Kinematics 🤖🚁
 
 **Course:** Introduction to Robotics (ITR / ME 639) — IIT Gandhinagar  
 **Author:** Prachi Jindal
@@ -32,8 +32,8 @@ This project delivers a complete **MuJoCo physics simulation** featuring real-ti
 
 | Robot | Video | What it shows |
 | :--- | :--- | :--- |
-| TurtleBot3 Waffle Pi | [`videos/wafflepi.mp4`](videos/wafflepi.mp4) | Keyboard driving and turning, the body frame $\{b\}$ rotating about $+Z$, and the live $R_{sb}$ readout |
-| Quadcopter | [`videos/quadcopter.mp4`](videos/quadcopter.mp4) | Climbing, pitching, rolling and yawing, the body frame tilting in 3D, and the live $R_{sb}$ readout |
+| TurtleBot3 Waffle Pi | [Watch on YouTube](https://youtu.be/O4woAEOLIEM) | Keyboard driving and turning, the body frame $\{b\}$ rotating about $+Z$, and the live $R_{sb}$ readout |
+| Quadcopter | [Watch on YouTube](https://youtu.be/1rXjki3CDYM) | Climbing, pitching, rolling and yawing, the body frame tilting in 3D, and the live $R_{sb}$ readout |
 
 ---
 
@@ -51,9 +51,6 @@ Challenge_1/
 │   ├── teleop_quadcopter.py           # Quadcopter flight teleop + live rotation matrix HUD
 │   └── run_challenge1.py              # Interactive launcher menu
 │
-├── videos/
-│   ├── wafflepi.mp4                   # TurtleBot3 Waffle Pi demo
-│   └── quadcopter.mp4                 # Quadcopter demo
 │
 ├── requirements.txt                   # Project dependencies (mujoco, numpy)
 └── README.md                          # Challenge documentation & user guide
@@ -145,3 +142,4 @@ $$\mathbf{F}_s = R_{sb} \begin{bmatrix} 0 \\ 0 \\ T \end{bmatrix} + m \mathbf{g}
 - **Yaw (rate command):** $\tau_z = K_{p,\psi}\,\dot\psi_{ref} - K_{d,\psi}\,\omega_z$.
 - Body-frame thrust and torques are rotated to the world frame with $R_{sb}$ before being applied via `xfrc_applied`.
 - Sign convention: a positive pitch $\theta$ tips the thrust axis towards $+X$ (forward); a negative roll $\phi$ tips it towards $+Y$ (left).
+
