@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 
 def main():
@@ -16,12 +17,13 @@ def main():
 """)
     choice = input("Enter choice [1/2/Q]: ").strip().lower()
     
+    # sys.executable = the Python running this launcher (your venv), not whatever 'python' is on PATH
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
     if choice == '1':
-        os.system(f'python "{os.path.join(script_dir, "teleop_turtlebot.py")}"')
+        subprocess.run([sys.executable, os.path.join(script_dir, "teleop_turtlebot.py")])
     elif choice == '2':
-        os.system(f'python "{os.path.join(script_dir, "teleop_quadcopter.py")}"')
+        subprocess.run([sys.executable, os.path.join(script_dir, "teleop_quadcopter.py")])
     else:
         print("Exiting.")
 

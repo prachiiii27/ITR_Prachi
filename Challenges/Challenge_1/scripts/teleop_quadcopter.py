@@ -21,9 +21,13 @@ target_roll = 0.0         # phi in rad
 target_pitch = 0.0        # theta in rad
 target_yaw_rate = 0.0     # psi_dot in rad/s
 
-DRONE_MASS = 1.35         # kg
 GRAVITY = 9.81
-HOVER_THRUST = DRONE_MASS * GRAVITY
+# Drone mass and hover thrust are read from the model in main()
+# (a hard-coded 1.35 kg was lighter than the real 1.573 kg, so it hovered ~7 cm low)
+
+# The key callback runs on the viewer's thread, so it only raises this flag;
+# the main loop does the actual reset (it owns model/data).
+reset_requested = False
 
 def print_controls():
     print("""
@@ -44,18 +48,21 @@ def print_controls():
 """)
 
 def key_callback(keycode):
-    global target_altitude, target_roll, target_pitch, target_yaw_rate
+    global target_altitude, target_roll, target_pitch, target_yaw_rate, reset_requested
     ANGLE_STEP = np.radians(4.0)
     MAX_TILT = np.radians(25.0)
 
     # Pitch W (87) / S (83)
+    # Positive pitch (rotation about +Y) tips the thrust axis towards +X,
+    # so "forward" (W) must INCREASE pitch.
     if keycode in [ord('W'), ord('w')]:
-        target_pitch = max(target_pitch - ANGLE_STEP, -MAX_TILT)
+        target_pitch = min(target_pitch + ANGLE_STEP, MAX_TILT)
         print(f">> [PITCH FWD] Pitch={np.degrees(target_pitch):+.1f}°")
     elif keycode in [ord('S'), ord('s')]:
-        target_pitch = min(target_pitch + ANGLE_STEP, MAX_TILT)
+        target_pitch = max(target_pitch - ANGLE_STEP, -MAX_TILT)
         print(f">> [PITCH BACK] Pitch={np.degrees(target_pitch):+.1f}°")
     # Roll A (65) / D (68)
+    # Negative roll (rotation about -X) tips the thrust axis towards +Y = left.
     elif keycode in [ord('A'), ord('a')]:
         target_roll = max(target_roll - ANGLE_STEP, -MAX_TILT)
         print(f">> [ROLL LEFT] Roll={np.degrees(target_roll):+.1f}°")
@@ -88,10 +95,11 @@ def key_callback(keycode):
         target_roll = 0.0
         target_pitch = 0.0
         target_yaw_rate = 0.0
+        reset_requested = True
         print(">> [RESET POSE]")
 
 def main():
-    global target_altitude, target_roll, target_pitch, target_yaw_rate
+    global target_altitude, target_roll, target_pitch, target_yaw_rate, reset_requested
     print_controls()
 
     if not os.path.exists(MODEL_PATH):
@@ -101,6 +109,11 @@ def main():
     data = mujoco.MjData(model)
 
     body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "quadcopter")
+
+    # Total mass of the drone (all its geoms) straight from the model
+    drone_mass = model.body_subtreemass[body_id]
+    hover_thrust = drone_mass * GRAVITY
+    print(f"Drone mass from model: {drone_mass:.3f} kg -> hover thrust {hover_thrust:.2f} N")
 
     Kp_z = 30.0;  Kd_z = 14.0
     Kp_att = 18.0; Kd_att = 4.0
@@ -113,23 +126,30 @@ def main():
         while viewer.is_running():
             step_start = time.time()
 
+            if reset_requested:
+                # Back to the initial hover pose from the XML, zero velocity
+                mujoco.mj_resetData(model, data)
+                mujoco.mj_forward(model, data)
+                reset_requested = False
+
             pos = data.xpos[body_id]
             quat = data.xquat[body_id]
             R = quat2mat(quat)
             rpy = mat2euler(R)
-            lin_vel = data.qvel[0:3]
-            ang_vel = data.qvel[3:6]
+            lin_vel = data.qvel[0:3]   # free joint: linear velocity in WORLD frame
+            ang_vel = data.qvel[3:6]   # free joint: angular velocity in BODY frame
 
-            # Altitude PID
+            # Altitude PD controller (gravity feed-forward + P on height error + D on vertical speed)
             z_err = target_altitude - pos[2]
-            thrust_z = HOVER_THRUST + Kp_z * z_err - Kd_z * lin_vel[2]
-            thrust_z = np.clip(thrust_z, 0.0, 3.0 * HOVER_THRUST)
+            thrust_z = hover_thrust + Kp_z * z_err - Kd_z * lin_vel[2]
+            thrust_z = np.clip(thrust_z, 0.0, 3.0 * hover_thrust)
 
-            # Attitude Stabilization Torques
+            # Attitude Stabilization Torques (PD, computed in the body frame)
             tau_x = Kp_att * (target_roll - rpy[0]) - Kd_att * ang_vel[0]
             tau_y = Kp_att * (target_pitch - rpy[1]) - Kd_att * ang_vel[1]
             tau_z = Kp_yaw * target_yaw_rate - Kd_yaw * ang_vel[2]
 
+            # xfrc_applied expects world-frame force/torque, so rotate body -> world with R_sb
             f_world = R @ np.array([0.0, 0.0, thrust_z])
             t_world = R @ np.array([tau_x, tau_y, tau_z])
 

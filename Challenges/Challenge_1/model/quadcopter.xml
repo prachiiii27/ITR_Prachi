@@ -25,10 +25,10 @@
     <site name="helipad_center" pos="0 0 0.002" size="0.6" type="cylinder" rgba="0.9 0.7 0.2 0.6"/>
     <site name="helipad_ring" pos="0 0 0.003" size="0.8 0.001" type="cylinder" rgba="1 1 1 0.4"/>
 
-    <!-- Fixed World Frame Reference at Origin -->
-    <geom name="world_x" type="cylinder" fromto="0 0 0.005 0.6 0 0.005" size="0.01" rgba="1 0 0 0.4"/>
-    <geom name="world_y" type="cylinder" fromto="0 0 0.005 0 0.6 0.005" size="0.01" rgba="0 1 0 0.4"/>
-    <geom name="world_z" type="cylinder" fromto="0 0 0.005 0 0 0.605" size="0.01" rgba="0 0 1 0.4"/>
+    <!-- Fixed World Frame Reference at Origin (visual only: no collision, so the drone cannot land on the axis pole) -->
+    <geom name="world_x" type="cylinder" fromto="0 0 0.005 0.6 0 0.005" size="0.01" rgba="1 0 0 0.4" contype="0" conaffinity="0"/>
+    <geom name="world_y" type="cylinder" fromto="0 0 0.005 0 0.6 0.005" size="0.01" rgba="0 1 0 0.4" contype="0" conaffinity="0"/>
+    <geom name="world_z" type="cylinder" fromto="0 0 0.005 0 0 0.605" size="0.01" rgba="0 0 1 0.4" contype="0" conaffinity="0"/>
 
     <!-- 6-DOF Quadcopter Drone -->
     <body name="quadcopter" pos="0 0 1.0">
@@ -68,9 +68,9 @@
 
       <!-- Attached Body Coordinate Frame Axes (RGB = XYZ) -->
       <site name="drone_body_origin" pos="0 0 0.05" size="0.02" rgba="1 1 0 1"/>
-      <geom name="body_x_axis" type="cylinder" fromto="0 0 0.05 0.35 0 0.05" size="0.008" material="red_axis" mass="0.001"/>
-      <geom name="body_y_axis" type="cylinder" fromto="0 0 0.05 0 0.35 0.05" size="0.008" material="green_axis" mass="0.001"/>
-      <geom name="body_z_axis" type="cylinder" fromto="0 0 0.05 0 0 0.40" size="0.008" material="blue_axis" mass="0.001"/>
+      <geom name="body_x_axis" type="cylinder" fromto="0 0 0.05 0.35 0 0.05" size="0.008" material="red_axis" mass="0.001" contype="0" conaffinity="0"/>
+      <geom name="body_y_axis" type="cylinder" fromto="0 0 0.05 0 0.35 0.05" size="0.008" material="green_axis" mass="0.001" contype="0" conaffinity="0"/>
+      <geom name="body_z_axis" type="cylinder" fromto="0 0 0.05 0 0 0.40" size="0.008" material="blue_axis" mass="0.001" contype="0" conaffinity="0"/>
     </body>
   </worldbody>
 </mujoco>

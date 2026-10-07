@@ -18,7 +18,7 @@ MODEL_PATH = os.path.join(SCRIPT_DIR, "..", "model", "turtlebot3_waffle_pi.xml")
 
 # Differential Drive Geometry
 WHEEL_RADIUS = 0.033     # r = 33 mm
-TRACK_WIDTH = 0.288      # L = 288 mm
+TRACK_WIDTH = 0.288      # L = 288 mm (distance between the two wheel centres)
 
 # Teleop velocity commands
 linear_vel = 0.0         # m/s
@@ -27,6 +27,11 @@ MAX_LIN_VEL = 0.8        # max forward/backward speed
 MAX_ANG_VEL = 2.5        # max yaw angular rate
 VEL_STEP_LIN = 0.10
 VEL_STEP_ANG = 0.35
+
+# The key callback runs on the viewer's thread, so it only raises this flag;
+# the main loop does the actual reset (it owns model/data).
+reset_requested = False
+
 
 def print_controls():
     print("""
@@ -46,45 +51,51 @@ def print_controls():
 ===================================================================
 """)
 
+
 def key_callback(keycode):
-    global linear_vel, angular_vel
-    # Handle GLFW keycodes (both lowercase and uppercase + arrow keys)
-    # W (87 / 119) or UP (265)
+    global linear_vel, angular_vel, reset_requested
+    # GLFW keycodes: letters arrive as uppercase ASCII; arrows are 262-265
+    # W or UP (265)
     if keycode in [ord('W'), ord('w'), 265]:
         linear_vel = min(linear_vel + VEL_STEP_LIN, MAX_LIN_VEL)
         print(f">> [FORWARD]  Linear={linear_vel:+.2f} m/s, Angular={angular_vel:+.2f} rad/s")
-    # S (83 / 115) or DOWN (264)
+    # S or DOWN (264)
     elif keycode in [ord('S'), ord('s'), 264]:
         linear_vel = max(linear_vel - VEL_STEP_LIN, -MAX_LIN_VEL)
         print(f">> [BACKWARD] Linear={linear_vel:+.2f} m/s, Angular={angular_vel:+.2f} rad/s")
-    # A (65 / 97) or LEFT (263)
+    # A or LEFT (263)
     elif keycode in [ord('A'), ord('a'), 263]:
         angular_vel = min(angular_vel + VEL_STEP_ANG, MAX_ANG_VEL)
         print(f">> [TURN LEFT]  Linear={linear_vel:+.2f} m/s, Angular={angular_vel:+.2f} rad/s")
-    # D (68 / 100) or RIGHT (262)
+    # D or RIGHT (262)
     elif keycode in [ord('D'), ord('d'), 262]:
         angular_vel = max(angular_vel - VEL_STEP_ANG, -MAX_ANG_VEL)
         print(f">> [TURN RIGHT] Linear={linear_vel:+.2f} m/s, Angular={angular_vel:+.2f} rad/s")
-    # X / B / Space (Brake)
+    # X / B (Brake)
     elif keycode in [ord('X'), ord('x'), ord('B'), ord('b')]:
         linear_vel = 0.0
         angular_vel = 0.0
         print(">> [BRAKE / STOP]")
-    # R (Reset)
+    # R (Reset pose + commands)
     elif keycode in [ord('R'), ord('r')]:
         linear_vel = 0.0
         angular_vel = 0.0
+        reset_requested = True
         print(">> [RESET TO ORIGIN]")
 
+
 def main():
-    global linear_vel, angular_vel
+    global linear_vel, angular_vel, reset_requested
     print_controls()
-    
+
     if not os.path.exists(MODEL_PATH):
         raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
 
     model = mujoco.MjModel.from_xml_path(MODEL_PATH)
     data = mujoco.MjData(model)
+
+    # Look the body up once, not every simulation step
+    body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "turtlebot")
 
     last_hud_time = 0.0
     hud_interval = 0.25
@@ -92,6 +103,12 @@ def main():
     with mujoco.viewer.launch_passive(model, data, key_callback=key_callback) as viewer:
         while viewer.is_running():
             step_start = time.time()
+
+            if reset_requested:
+                # Puts the robot back at its initial pose (as written in the XML) with zero velocity
+                mujoco.mj_resetData(model, data)
+                mujoco.mj_forward(model, data)
+                reset_requested = False
 
             # Differential Drive Kinematic Mapping:
             # omega_L = (v - omega * L / 2) / r
@@ -106,7 +123,6 @@ def main():
             viewer.sync()
 
             # Extract Robot Body Pose & SO(3) Rotation Matrix
-            body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "turtlebot")
             pos = data.xpos[body_id]
             quat = data.xquat[body_id]  # [w, x, y, z]
             R = quat2mat(quat)
@@ -120,10 +136,11 @@ def main():
                 print(hud_text)
                 last_hud_time = cur_time
 
-            # Step rate sync
+            # Step rate sync (run at real time)
             time_until_next = model.opt.timestep - (time.time() - step_start)
             if time_until_next > 0:
                 time.sleep(time_until_next)
+
 
 if __name__ == "__main__":
     main()
