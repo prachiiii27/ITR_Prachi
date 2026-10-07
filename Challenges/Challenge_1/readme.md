@@ -32,7 +32,7 @@ This project delivers a complete **MuJoCo physics simulation** featuring real-ti
 
 | Robot | Video | What it shows |
 | :--- | :--- | :--- |
-| TurtleBot3 Waffle Pi | [Watch on YouTube](https://youtu.be/O4woAEOLIEM) | Keyboard driving and turning, the body frame $\{b\}$ rotating about $+Z$, and the live $R_{sb}$ readout |
+| TurtleBot3 Waffle Pi | [Watch on YouTube](https://youtu.be/rKthY_KlMj8) | Keyboard driving and turning, the body frame $\{b\}$ rotating about $+Z$, and the live $R_{sb}$ readout |
 | Quadcopter | [Watch on YouTube](https://youtu.be/1rXjki3CDYM) | Climbing, pitching, rolling and yawing, the body frame tilting in 3D, and the live $R_{sb}$ readout |
 
 ---
