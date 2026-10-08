@@ -128,7 +128,7 @@ where $\mathbf{c} + \mathbf{g}$ comes from `mujoco.mj_rne` with zero acceleratio
 
 ## 🎥 Demo Video
 
-▶️ **[Watch the Challenge 2 demo on YouTube]([https://youtu.be/84XmPu7SsNw])**
+▶️ **Watch the Challenge 2 demo on YouTube: https://youtu.be/VIyV7an1vbo**
 
 The video shows all four simulations (6-DOF arm, 7-DOF arm, HEAL robot, Franka Panda): moving joints with the keyboard, the arm holding each target under gravity, the Franka gripper opening and closing, and the terminal printing our own PoE FK end-effector position next to MuJoCo's.
 
