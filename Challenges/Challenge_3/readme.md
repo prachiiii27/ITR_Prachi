@@ -1,6 +1,7 @@
-# Tutorial 4 – Pick and Place in MuJoCo with Inverse Kinematics
+# Pick and Place in MuJoCo with Inverse Kinematics
 
-**Course:** Introduction to Robotics (ITR) 
+**Course:** Introduction to Robotics (ITR / ME 639), IIT Gandhinagar  
+**Tutorial:** Pick and Place of Objects  
 **Student:** Prachi Jindal
 
 A **Franka Emika Panda** arm picks up a 4 cm cube placed at a random position and
@@ -15,8 +16,8 @@ on **exactly the same 25 cube poses**.
 | **DLS-IK** | damped least squares, closed loop: `dq = (JᵀJ + λI)⁻¹ Jᵀ K e` + null-space joint centring | `ik_solvers.DLSIK` |
 | **QP-IK** | DLS cost as a quadratic program with joint-limit and joint-velocity constraints (`quadprog`) | `ik_solvers.QPIK` |
 
-🎥 **Video (3 min, 1 min per IK method):** https://youtu.be/9ps0CDkTn_A
-
+🎥 **Video (3 min, 1 min per IK method):** https://youtu.be/9ps0CDkTn_A  
+📄 **Report:**  [`report/`](report/)
 ---
 
 ## 1. Results at a glance
@@ -28,7 +29,7 @@ on **exactly the same 25 cube poses**.
 | **Nominal** – cube in the designed spawn region | **100 %** | **100 %** | **100 %** | **100 %** |
 | **Stress** – cube anywhere on the table | 100 % | 100 % | 100 % | 100 % |
 | **Naive** – smart grasp/transit choices switched off | 16 % | 24 % | 28 % | 16 % |
-| Planning time per episode (nominal) | 57 ms | 38 ms | 46 ms | 85 ms |
+| Planning time per episode (nominal) | 56.5 ms | 33.9 ms | 48.4 ms | 73.0 ms |
 | IK iterations per waypoint (nominal) | 1.0 | 2.0 | 2.1 | 5.9 |
 | Joint-limit violations (naive, waypoints) | 0 | 413 | 375 | 0 |
 | Max joint speed / limit (naive) | 3.27 | 0.81 | 0.81 | 1.44 |
@@ -113,6 +114,7 @@ Run every command from this folder with the virtual environment active.
 ├── requirements.txt
 ├── assets/panda/    Franka Panda model (mujoco_menagerie)
 ├── results/         plots, logs, summary tables, failure screenshots
+├── report           
 └── videos/          one minute per IK method
 ```
 
@@ -233,6 +235,8 @@ faded.
 
 https://youtu.be/9ps0CDkTn_A
 
+Individual clips are also in [`videos/`](videos/): `mink_1min.mp4`, `dls_1min.mp4`, `qp_1min.mp4`, `failures_naive.mp4`.
+
 ---
 
 ## 8. References
@@ -240,4 +244,3 @@ https://youtu.be/9ps0CDkTn_A
 * MuJoCo: https://mujoco.org
 * MuJoCo Menagerie (Franka Emika Panda model): https://github.com/google-deepmind/mujoco_menagerie
 * Tutorial 4 notes (D. Das): DLS-IK derivation, QP formulation, quaternion error, null-space objectives
-
