@@ -36,39 +36,16 @@ ITR_Prachi/
 │
 ├── Homework/                            # Homework Assignments & Problems
 │   ├── README.md                        # Homework assignments index
-│   │
 │   ├── Homework_Problem_1/              # Homework Problem 1: Interactive 3D Frame Rotation Visualizer
-│   │   ├── rigid_body_rotation_visualizer.html
-│   │   ├── rigid_body_rotation_visualizer_1.html
-│   │   └── README.md
-│   │
 │   └── HW1/                             # Homework 1: MuJoCo Rotation Sandbox & Skew Verification
-│       ├── model/                       # MuJoCo MJCF model
-│       ├── scripts/                     # Python simulation scripts
-│       ├── ros_ws/                      # ROS2 TF broadcaster workspace
-│       ├── results/                     # Numerical plots
-│       ├── videos/                      # Simulation video demos
-│       ├── Hw1_part1.pdf                # Analytical solutions & derivations
-│       └── README.md
 │
 └── Challenges/                          # Robotics Challenges & Mini-Projects
     ├── README.md                        # Challenges index
-    │
     ├── Challenge_1/                     # Challenge 1: TurtleBot3 & Quadcopter Simulation
-    │   ├── model/                       # MJCF XML models for TurtleBot3 & Quadcopter
-    │   ├── scripts/                     # Teleop & Rotation Matrix HUD scripts
-    │   ├── requirements.txt             # Dependencies
-    │   └── README.md                    # Complete challenge documentation
-    │
-    └── Challenge_2/                     # Challenge 2: MuJoCo Forward Kinematics (FK) & Robot Control Lab
-        ├── robot_descriptions/          # Robot XML models (HEAL, Franka Panda, UR5, G1)
-        ├── scripts/                     # 6-DOF, 7-DOF, HEAL, Franka simulation scripts
-        ├── environment.yml              # Conda environment
-        ├── requirements.txt             # Pip requirements
-        └── README.md                    # Detailed documentation & FK mathematical formulation
+    |── Challenge_2/                     # Challenge 2: MuJoCo Forward Kinematics (FK) & Robot Control Lab
+    └── Challenge_3/                     # Challenge 3: Pick and Place in MuJoCo with IK (Mink, DLS, QP)  
 ```
 
----
 
 ## 🛠️ Software & Environment
 
