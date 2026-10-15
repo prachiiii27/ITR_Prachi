@@ -1,4 +1,4 @@
-# Pick and Place in MuJoCo with Inverse Kinematics
+# Pick and Place in MuJoCo with Inverse Kinematics in Franka
 
 **Course:** Introduction to Robotics (ITR / ME 639), IIT Gandhinagar  
 **Tutorial:** Pick and Place of Objects  
